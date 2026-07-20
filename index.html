@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow - Continuous Engine</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        #pipVideo { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .input-group { margin: 15px 0; text-align: center; color: white; }
+        .input-group input { width: 70px; padding: 8px; font-size: 16px; border-radius: 8px; border: none; text-align: center; margin: 0 5px; }
+        .long-break-box { background: rgba(59, 130, 246, 0.2); border-left: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+            transition: top 0.25s ease, bottom 0.25s ease, left 0.25s ease, right 0.25s ease, align-items 0.25s ease;
+            pointer-events: none;
+        }
+        .toast-card {
+            pointer-events: auto;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid #3b82f6;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: bold;
+            min-width: 280px;
+            max-width: 92vw;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .toast-card.show { transform: translateX(0); }
+    </style>
+</head>
+<body>
+
+    <video id="pipVideo" autoplay muted playsinline></video>
+    <div id="toastContainer"></div>
+
+    <div class="container">
+        <h1>📚 FocusFlow</h1>
+        <p class="subtitle">Autopilot Training Engine</p>
+
+        <div id="setupBlock">
+            <h3 style="color: #93c5fd; text-align: center; margin-bottom: 15px;">How long will you study today?</h3>
+            <div class="input-group">
+                <input id="targetHours" type="number" min="0" value="4"> <label>Hours</label>
+                <input id="targetMinutes" type="number" min="0" max="59" value="0"> <label>Minutes</label>
+            </div>
+            <button onclick="window.proceedToPlans()" style="width: 100%; padding: 12px; background: #3b82f6; border: none; color: white; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px;">Next ➡️</button>
+        </div>
+
+        <div id="planSelectionArea" style="display: none;">
+            <div id="studyPlans">
+                <h3 style="margin-bottom: 25px; color: #93c5fd; text-align: center;">Choose Study Split</h3>
+                
+                <div id="longBreakOption" class="long-break-box" style="display: none; margin-bottom: 20px;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">⚡ Long Break Recommended (>3h block):</label>
+                    <input id="suggestedLongBreak" type="number" value="15" style="width: 60px; padding: 6px; text-align: center; border-radius: 5px; border: none;"> minutes
+                </div>
+
+                <button onclick="window.selectPlan(25,5)">🌱 Pomodoro Traditional<br><small>25 min Study / 5 min Break</small></button>
+                <button onclick="window.selectPlan(50,10)">🔥 Balanced Focus<br><small>50 min Study / 10 min Break</small></button>
+                <button onclick="window.selectPlan(90,15)">🚀 Hyper Focus Block<br><small>90 min Study / 15 min Break</small></button>
+                <button onclick="window.customPlan()">⚙️ Custom Rules Matrix<br><small>Configure personalized dimensions</small></button>
+            </div>
+        </div>
+
+        <div id="mainTimerArea" style="display: none;">
+            <div class="timer" style="margin-top: 20px;">
+                <div id="timerDisplay">25:00</div>
+            </div>
+
+            <div class="buttons" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <button id="toggleBtn" style="width: 100%; padding: 14px; background: #22c55e; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer;">▶ Start</button>
+                <button id="pipBtn" style="width: 100%; padding: 12px; background: #4b5563; color: white; border: none; border-radius: 12px; font-size: 15px; cursor: pointer;">📺 Open PiP Window</button>
+            </div>
+
+            <div class="progress" style="margin: 20px 0; background: #374151; height: 8px; border-radius: 5px; overflow: hidden;">
+                <div id="progressBar" style="background: #22c55e; width: 0%; height: 100%;"></div>
+            </div>
+
+            <div id="messageBox" style="margin-bottom: 25px; font-style: italic; color: #cbd5e1; text-align: center; min-height: 20px;"></div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <button id="changePlanBtn" style="flex: 1; padding: 10px; background: #1f2937; border: 1px solid #4b5563; color: #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 14px;">⬅ Reset Session</button>
+                <button id="progressBtn" style="flex: 1; padding: 10px; background: #3b82f6; border: none; color: white; border-radius: 8px; cursor: pointer; font-size: 14px;">📊 See Progress</button>
+            </div>
+
+            <div class="stats">
+                <div>
+                    <strong>Cycles Completed</strong><br>
+                    <span id="sessionCount">0</span>
+                </div>
+                <div>
+                    <strong>Engine Phase</strong><br>
+                    <span id="modeDisplay">Study</span>
+                </div>
+                <div>
+                    <strong>Upcoming Node</strong><br>
+                    <span id="nextBreak">Short Break</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="progressViewArea" style="display: none; color: white; margin-top: 20px; padding: 20px; background: rgba(30, 41, 59, 0.7); border-radius: 15px; border: 1px solid #4b5563;">
+            <h2 style="text-align: center; color: #3b82f6; margin-bottom: 15px;">📊 Performance Diagnostics</h2>
+            <div style="font-size: 16px; line-height: 2; margin-bottom: 20px;">
+                • Total Focus Time Logged: <span id="progressFocusSeconds" style="color: #22c55e; font-weight: bold;">0</span> seconds<br>
+                • Targeted Session Matrix: <span id="progressTargetMinutes" style="color: #60a5fa;">0</span> minutes total<br>
+                • Completed Focus Intervals: <span id="progressCycles" style="color: #eab308;">0</span>
+            </div>
+            <button id="backToTimerBtn" style="width: 100%; padding: 12px; background: #4b5563; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer;">⬅ Back to Active Timer</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+    "name": "FocusFlow Study Assistant",
+    "short_name": "FocusFlow",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#111827",
+    "theme_color": "#111827",
+    "description": "Offline study focus timer with breaks and progress tracking",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

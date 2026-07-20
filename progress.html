@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FocusFlow Progress</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #111827, #1f2937);
+            color: white;
+            font-family: Segoe UI, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        h3 {
+            color: #93c5fd;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stat:last-child {
+            border-bottom: none;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #22c55e;
+        }
+        .distraction-warning {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .distraction-warning strong {
+            color: #fca5a5;
+        }
+        .positive {
+            background: rgba(34, 197, 94, 0.2);
+            border-left: 4px solid #22c55e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .positive strong {
+            color: #86efac;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 15px;
+            background: #3b82f6;
+            color: white;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        .reset-btn {
+            background: #ef4444;
+        }
+        .reset-btn:hover {
+            background: #dc2626;
+        }
+        .progress-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #334155;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #06b6d4);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📊 Today's Progress</h1>
+
+        <div class="card">
+            <h3>🎯 Focus Sessions</h3>
+            <div class="stat">
+                <span>Completed Sessions</span>
+                <span class="stat-value" id="sessions">0</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>⏱️ Study Time</h3>
+            <div class="stat">
+                <span>Total Study</span>
+                <span class="stat-value" id="minutes">0</span>
+            </div>
+            <small style="color: #cbd5e1; margin-top: 8px; display: block;">minutes</small>
+        </div>
+
+        <div class="card">
+            <h3>🎓 Daily Goal Progress</h3>
+            <div class="progress-section">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>Goal: 180 minutes (3 hours)</span>
+                    <span style="color: #3b82f6; font-weight: bold;" id="goalPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="goalBar"></div>
+                </div>
+            </div>
+            <div id="goalMessage" class="positive" style="display: none;">
+                <strong>🎉 Congratulations!</strong><br>
+                You've reached your daily goal!
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>😟 Distraction Tracking</h3>
+            <div class="stat">
+                <span>Time Distracted</span>
+                <span class="stat-value" id="distractionTime">0</span>
+            </div>
+            <small style="color: #cbd5e1; margin-top: 8px; display: block;">seconds (paused in PiP)</small>
+            <div id="distractionAlert" class="distraction-warning" style="display: none;">
+                <strong>⚠️ Focus Alert</strong><br>
+                You've been distracted. Try to minimize interruptions!
+            </div>
+        </div>
+
+        <button onclick="goBack()">⬅ Back to Timer</button>
+        <button class="reset-btn" onclick="resetProgress()">🔄 Reset Today's Data</button>
+    </div>
+
+    <script>
+        document.getElementById("sessions").innerText = localStorage.getItem("sessions") || 0;
+
+        var study = localStorage.getItem("totalStudyMinutes") || 0;
+        document.getElementById("minutes").innerText = study;
+
+        var distraction = localStorage.getItem("distractionTime") || 0;
+        document.getElementById("distractionTime").innerText = distraction;
+
+        if (Number(distraction) > 300) {
+            document.getElementById("distractionAlert").style.display = "block";
+        }
+
+        function updateGoalProgress() {
+            var study = Number(localStorage.getItem("totalStudyMinutes") || 0);
+            var goalPercent = Math.floor((study / 180) * 100);
+            if (goalPercent > 100) goalPercent = 100;
+            document.getElementById("goalPercent").innerText = goalPercent + "%";
+            document.getElementById("goalBar").style.width = goalPercent + "%";
+            if (goalPercent >= 100) {
+                document.getElementById("goalMessage").style.display = "block";
+            }
+        }
+
+        updateGoalProgress();
+
+        function goBack() {
+            window.history.back();
+        }
+
+        function resetProgress() {
+            var modal = document.createElement("div");
+            modal.id = "resetModal";
+            modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:1000;";
+
+            var card = document.createElement("div");
+            card.style.cssText = "background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:20px;padding:30px;width:90%;max-width:400px;border:2px solid rgba(239,68,68,0.5);box-shadow:0 20px 60px rgba(0,0,0,0.5);color:white;text-align:center;";
+
+            card.innerHTML = '<h2 style="margin-bottom:15px;font-size:26px;">🔄 Reset Today\'s Data?</h2>' +
+                '<p style="color:#cbd5e1;margin-bottom:20px;line-height:1.6;">This will clear all your sessions, study time, and distraction tracking for today. This action cannot be undone.</p>' +
+                '<div style="display:flex;gap:12px;justify-content:center;">' +
+                '<button id="cancelReset" style="padding:12px 24px;border:none;border-radius:10px;background:#64748b;color:white;cursor:pointer;font-weight:bold;font-size:16px;">Cancel</button>' +
+                '<button id="confirmReset" style="padding:12px 24px;border:none;border-radius:10px;background:#ef4444;color:white;cursor:pointer;font-weight:bold;font-size:16px;">🔄 Reset All</button>' +
+                '</div>';
+
+            modal.appendChild(card);
+            document.body.appendChild(modal);
+
+            document.getElementById("cancelReset").onclick = function() {
+                modal.remove();
+            };
+
+            document.getElementById("confirmReset").onclick = function() {
+                localStorage.setItem("sessions", 0);
+                localStorage.setItem("totalStudyMinutes", 0);
+                localStorage.setItem("totalStudySeconds", 0);
+                localStorage.setItem("distractionTime", 0);
+
+                document.getElementById("sessions").innerText = 0;
+                document.getElementById("minutes").innerText = 0;
+                document.getElementById("distractionTime").innerText = 0;
+                document.getElementById("distractionAlert").style.display = "none";
+                document.getElementById("goalMessage").style.display = "none";
+
+                updateGoalProgress();
+                modal.remove();
+
+                var successMsg = document.createElement("div");
+                successMsg.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(34,197,94,0.9);color:white;padding:20px 30px;border-radius:12px;font-weight:bold;font-size:18px;z-index:2000;";
+                successMsg.innerText = "✅ Progress reset!";
+                document.body.appendChild(successMsg);
+                setTimeout(function() { successMsg.remove(); }, 2000);
+            };
+        }
+    </script>
+</body>
+</html>
